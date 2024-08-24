@@ -24,10 +24,10 @@ class Player(pygame.sprite.Sprite):
         self.gravity = -gravity
         self.free_fall = free_fall
         #Smiling image
-        self.smiling_image = pygame.image.load('smiling.png').convert_alpha()  # Load the image
+        self.smiling_image = pygame.image.load('imgs/smiling.png').convert_alpha()  # Load the image
         self.smiling_image = pygame.transform.scale(self.smiling_image, (2 * radius, 2 * radius))  # Scale image to fit radius
         #Scared image
-        self.scared_image = pygame.image.load('scared.png').convert_alpha()  # Load the image
+        self.scared_image = pygame.image.load('imgs/scared.png').convert_alpha()  # Load the image
         self.scared_image = pygame.transform.scale(self.scared_image, (2 * radius, 2 * radius))  # Scale image to fit radius
         self.falling = False
 
