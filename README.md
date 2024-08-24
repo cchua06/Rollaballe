@@ -4,5 +4,5 @@
 Run the game using:
 
 ```bash
-main.py
+python main.py
 ```
