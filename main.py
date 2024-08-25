@@ -3,15 +3,21 @@ import sys
 from player import Player
 from platforms import Platform
 import random
+import math
 
+#Initialize Pygame and the sound mixer
 pygame.init()
+pygame.mixer.init()
 
+#Initialize variables
 SCREEN_WIDTH = 400
 SCREEN_HEIGHT = 700
 START_HEIGHT = 200
-BACKGROUND_COLOR = (173, 216, 230)
-DARK_BLUE = (21, 34, 56)
-BALL_COLOR = (255, 0, 0)
+BACKGROUND_COLOR = (5, 1, 36)
+HIGHLIGHT_TEXT_COLOR = (255, 76, 76)
+SUBTEXT_COLOR = (245, 245, 245)
+SCORE_TEXT_COLOR = (169, 169, 169)
+HIGHSCORE_TEXT_COLOR = (255, 215, 0)
 PLATFORM_COLOR = (255, 255, 255)
 PLATFORM_WIDTH = 150
 PLATFORM_SPACING = 200
@@ -19,6 +25,7 @@ GRAVITY = 2
 DIFFICULTY = 1
 FREE_FALL = 4
 HIGH_SCORE = 0
+run_score = 0
 START_TIME = 0
 FPS = 60
 platforms = []
@@ -34,10 +41,17 @@ subtext_font = pygame.font.Font('game_font.ttf', 20)
 superscript_font = pygame.font.Font('game_font.ttf', 14)
 
 # Create the player
-player = Player(x=SCREEN_WIDTH // 2, y=START_HEIGHT, radius=20, color=BALL_COLOR, gravity=GRAVITY, free_fall=FREE_FALL)
+player = Player(x=SCREEN_WIDTH // 2, y=START_HEIGHT, radius=20)
 
 # Set up a clock
 clock = pygame.time.Clock()
+
+#Initialize starry background and scrolling
+background_img = pygame.image.load('imgs/stars.png').convert()
+scaled_height = int((background_img.get_height() / background_img.get_width()) * SCREEN_WIDTH)
+background_img = pygame.transform.scale(background_img, (SCREEN_WIDTH, scaled_height))
+scroll = 0
+tiles = math.ceil(SCREEN_HEIGHT / background_img.get_height()) + 1
 
 # Create a new platform
 def create_platform(y_pos):
@@ -72,7 +86,7 @@ def wrap_text(text, font, max_width):
 
     for word in words:
         test_line = f"{current_line} {word}".strip()
-        test_surface = font.render(test_line, True, DARK_BLUE)
+        test_surface = font.render(test_line, True, SUBTEXT_COLOR)
         if test_surface.get_width() <= max_width:
             current_line = test_line
         else:
@@ -84,7 +98,12 @@ def wrap_text(text, font, max_width):
 
 # Draw the starting screen
 def draw_start_screen():
-    screen.fill(BACKGROUND_COLOR)
+    global scroll
+
+    #Draw background tiles
+    for i in range(tiles):
+        screen.blit(background_img, (0, scroll + background_img.get_height() * i))
+
     # Draw all platforms and player
     for platform in platforms:
         platform.draw(screen)
@@ -100,12 +119,12 @@ def draw_start_screen():
     # Draw each line of text
     y_pos = 50
     for line in wrapped_lines:
-        text_surface = font.render(line, True, DARK_BLUE)
+        text_surface = font.render(line, True, (255, 255, 255))
         text_rect = text_surface.get_rect(center=(SCREEN_WIDTH // 2, y_pos + text_surface.get_height() // 2))
         screen.blit(text_surface, text_rect)
         y_pos += text_surface.get_height()
 
-    instructions_text = subtext_font.render("Press any arrow key to begin", True, DARK_BLUE)
+    instructions_text = subtext_font.render("Press any arrow key to begin", True, SUBTEXT_COLOR)
     instructions_rect = instructions_text.get_rect(center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
     screen.blit(instructions_text, instructions_rect)
 
@@ -115,17 +134,20 @@ def draw_start_screen():
 def restart_game():
     global game_over
     game_over = False
-    DIFFICULTY = 1
     reset()
     main_game_loop()
 
 def reset():
+    global scroll, DIFFICULTY, run_score
+    DIFFICULTY = 1
+    run_score = 0
+    scroll = 0
     platforms.clear()
     player.reset()
     init_platforms()
 
 def main_game_loop():
-    global DIFFICULTY, PLATFORM_SPACING, MAX_PLATFORMS, HIGH_SCORE, START_TIME, game_over
+    global DIFFICULTY, PLATFORM_SPACING, MAX_PLATFORMS, HIGH_SCORE, START_TIME, game_over, scroll, run_score
 
     # Wait for an arrow key press to start the game
     waiting_for_key = True
@@ -148,7 +170,14 @@ def main_game_loop():
                 pygame.quit()
                 sys.exit()
         
-        screen.fill(BACKGROUND_COLOR)
+        # Adjust background image scroll rate
+        scroll -= GRAVITY * DIFFICULTY * 0.4
+        if scroll <= -background_img.get_height():
+            scroll = 0
+
+        # Draw background tiles
+        for i in range(tiles):
+            screen.blit(background_img, (0, scroll + background_img.get_height() * i))
 
         # Player updates
         keys = pygame.key.get_pressed()
@@ -159,21 +188,25 @@ def main_game_loop():
             game_over = True
             break
 
-        # Platform updates
+        # Platform updates and drawing
+        platforms_to_remove = []
         for platform in platforms:
             if platform.is_out_of_bounds():
-                platforms.remove(platform)
-                platform.kill()
+                platforms_to_remove.append(platform)
             else:
                 platform.update()
                 platform.draw(screen)
+
+        for platform in platforms_to_remove:
+            platforms.remove(platform)
+            platform.kill()
 
         if len(platforms) < MAX_PLATFORMS:
             lowest_y = max(platform.y for platform in platforms)
             new_y_pos = lowest_y + PLATFORM_SPACING
             platforms.append(create_platform(new_y_pos))
 
-         # Check if 15 seconds have passed and increase difficulty
+        # Check if 15 seconds have passed and increase difficulty
         current_time = pygame.time.get_ticks()
         if (current_time - start_time) >= 15000:  # 15 seconds
             DIFFICULTY += 0.5
@@ -183,17 +216,20 @@ def main_game_loop():
                 platform.update_difficulty(DIFFICULTY)
             start_time = current_time
 
+        scroll -= GRAVITY * DIFFICULTY
+
         # Score logic
         seconds_elapsed = (current_time - START_TIME) // 1000
+        run_score = seconds_elapsed
         HIGH_SCORE = max(HIGH_SCORE, seconds_elapsed)
 
         # Display score at the top right
-        score_text = superscript_font.render(f'Score: {seconds_elapsed}', True, DARK_BLUE)
+        score_text = superscript_font.render(f'Score: {seconds_elapsed}', True, SCORE_TEXT_COLOR)
         score_rect = score_text.get_rect(topright=(SCREEN_WIDTH - 10, 20))
         screen.blit(score_text, score_rect)
 
         # Display high score at the top left
-        high_score_text = superscript_font.render(f'High Score: {HIGH_SCORE}', True, DARK_BLUE)
+        high_score_text = superscript_font.render(f'High Score: {HIGH_SCORE}', True, HIGHSCORE_TEXT_COLOR)
         high_score_rect = high_score_text.get_rect(topleft=(10, 20))
         screen.blit(high_score_text, high_score_rect)
 
@@ -214,16 +250,46 @@ def main_game_loop():
         screen.fill(BACKGROUND_COLOR)
         
         # Game Over Text
-        game_over_text = font.render("Game Over", True, (255, 0, 0))
-        text_rect = game_over_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 20))
+        game_over_text = font.render("Game Over", True, HIGHLIGHT_TEXT_COLOR)
+        text_rect = game_over_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 120))
         screen.blit(game_over_text, text_rect)
         
         # Restart Instructions
-        restart_text = subtext_font.render("Press any arrow key to play again", True, (0, 0, 0))
-        restart_text_rect = restart_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 40))
+        restart_text = subtext_font.render("Press any arrow key to play again", True, SUBTEXT_COLOR)
+        restart_text_rect = restart_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 -60))
         screen.blit(restart_text, restart_text_rect)
 
+        # Load the sad face image
+        original_sad_face_img = pygame.image.load('imgs/sad.png').convert_alpha()
+
+        # Create a new image with a solid background
+        background_color = BACKGROUND_COLOR  # White background (or any color you choose)
+        sad_face_width, sad_face_height = 100, 100
+
+        # Create a surface with the background color
+        sad_face_with_bg = pygame.Surface((sad_face_width, sad_face_height))
+        sad_face_with_bg.fill(background_color)
+
+        # Blit the original image onto the new surface
+        sad_face_img = pygame.transform.scale(original_sad_face_img, (sad_face_width, sad_face_height))
+        sad_face_with_bg.blit(sad_face_img, (0, 0))
+
+        # Calculate position for the scaled sad face image
+        sad_face_rect = sad_face_with_bg.get_rect(center=(SCREEN_WIDTH // 2, restart_text_rect.bottom + 100))
+        screen.blit(sad_face_with_bg, sad_face_rect)
+
+        # High Score Text
+        high_score_text = font.render(f"High Score: {HIGH_SCORE}", True, HIGHSCORE_TEXT_COLOR)
+        high_score_rect = high_score_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 150))
+        screen.blit(high_score_text, high_score_rect)
+        
+        # Score Text
+        score_text = subtext_font.render(f'Score: {run_score}', True, SUBTEXT_COLOR)
+        score_rect = score_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 190))
+        screen.blit(score_text, score_rect)
+
         pygame.display.flip()
+
 
 # Initialize platforms
 init_platforms()
