@@ -24,6 +24,8 @@ class Player(pygame.sprite.Sprite):
         self.dx = 0
         self.dy = -GRAVITY
         self.radius = radius
+        self.accelerationmultiplier = 1.0
+        self.maxspeedmultiplier = 1.0
         self.gravity = -GRAVITY
         self.free_fall = FREE_FALL
         self.falling = False
@@ -43,6 +45,8 @@ class Player(pygame.sprite.Sprite):
         self.x = SCREEN_WIDTH // 2
         self.y = START_HEIGHT
         self.dx = 0
+        self.accelerationmultiplier = 1.0
+        self.maxspeedmultiplier = 1.0
         self.dy = -GRAVITY
         self.gravity = -GRAVITY
         self.free_fall = FREE_FALL
@@ -80,13 +84,15 @@ class Player(pygame.sprite.Sprite):
     def update_difficulty(self, difficulty):
         self.gravity = difficulty * -GRAVITY
         self.free_fall = difficulty * FREE_FALL
+        self.accelerationmultiplier = (float) (1.0 + ((difficulty - 1) * 0.1))
+        self.maxspeedmultiplier = (float) (1.0 + ((difficulty - 1) * 0.1))
 
     # Player movement
     def update(self, keys, screen_width, platforms):
         if keys[pygame.K_LEFT]:
-            self.dx = max(-MAX_SPEED, self.dx - ACCELERATION)
+            self.dx = max(-(MAX_SPEED * self.maxspeedmultiplier), self.dx - ACCELERATION * self.accelerationmultiplier)
         elif keys[pygame.K_RIGHT]:
-            self.dx = min(MAX_SPEED, self.dx + ACCELERATION)
+            self.dx = min((MAX_SPEED * self.maxspeedmultiplier), self.dx + ACCELERATION * self.accelerationmultiplier)
         else:
             self.dx *= FRICTION
         

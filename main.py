@@ -23,6 +23,7 @@ PLATFORM_WIDTH = 150
 PLATFORM_SPACING = 200
 GRAVITY = 2
 DIFFICULTY = 1
+DIFFICULTY_DELTA = 10 #how many seconds until stage gets harder
 FREE_FALL = 4
 HIGH_SCORE = 0
 run_score = 0
@@ -208,7 +209,7 @@ def main_game_loop():
 
         # Check if 15 seconds have passed and increase difficulty
         current_time = pygame.time.get_ticks()
-        if (current_time - start_time) >= 15000:  # 15 seconds
+        if (current_time - start_time) >= (DIFFICULTY_DELTA * 1000):  # 15 seconds
             DIFFICULTY += 0.5
             PLATFORM_SPACING += 10
             player.update_difficulty(DIFFICULTY)
@@ -289,7 +290,6 @@ def main_game_loop():
         screen.blit(score_text, score_rect)
 
         pygame.display.flip()
-
 
 # Initialize platforms
 init_platforms()
