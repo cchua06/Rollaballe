@@ -1,3 +1,11 @@
+'''
+Rollaballe
+By: Cedric Chua
+
+Credits to joshuuu for the loopable background music:
+https://joshuuu.itch.io/short-loopable-background-music?download
+'''
+
 import pygame
 import sys
 from player import Player
@@ -21,6 +29,7 @@ HIGHSCORE_TEXT_COLOR = (255, 215, 0)
 PLATFORM_COLOR = (255, 255, 255)
 PLATFORM_WIDTH = 150
 PLATFORM_SPACING = 200
+MUTE = False
 GRAVITY = 2
 DIFFICULTY = 1
 DIFFICULTY_DELTA = 10 #how many seconds until stage gets harder
@@ -31,10 +40,27 @@ START_TIME = 0
 FPS = 60
 platforms = []
 MAX_PLATFORMS = 8
+waiting_for_key = True
 
 # Initialize game screen
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Rollaball")
+
+#Initialize background music
+background_music = pygame.mixer.Sound('sounds/background_spaceship.ogg')
+background_music.set_volume(0.3)
+
+# Load the mute and unmute images
+mute_img = pygame.image.load('imgs/mute.png').convert_alpha()
+unmute_img = pygame.image.load('imgs/unmute.png').convert_alpha()
+
+#Scale down the mute icons
+mute_img = pygame.transform.scale(mute_img, (50, 50))
+unmute_img = pygame.transform.scale(unmute_img, (35, 50))
+
+# Set initial mute button image
+current_mute_img = unmute_img
+mute_button_rect = current_mute_img.get_rect(bottomleft=(SCREEN_WIDTH - mute_img.get_width() - 10, SCREEN_HEIGHT - 10))
 
 # Initialize fonts
 font = pygame.font.Font('game_font.ttf', 40)
@@ -129,12 +155,38 @@ def draw_start_screen():
     instructions_rect = instructions_text.get_rect(center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
     screen.blit(instructions_text, instructions_rect)
 
+    #Draw mute/unmute button
+    screen.blit(current_mute_img, mute_button_rect)
+
     pygame.display.flip()
+
+#Mute all sounds
+def mute():
+    background_music.set_volume(0)
+    player.mute()
+
+#Unmute all sounds
+def unmute():
+    background_music.set_volume(0.3)
+    player.unmute()
+
+def handle_mute_button_click(event):
+    global MUTE, current_mute_img
+    if mute_button_rect.collidepoint(pygame.mouse.get_pos()):
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:  # Left mouse button pressed
+            if MUTE:
+                unmute()
+                current_mute_img = unmute_img
+            else:
+                mute()
+                current_mute_img = mute_img
+            MUTE = not MUTE
 
 # Restart the game
 def restart_game():
     global game_over
     game_over = False
+    background_music.stop()
     reset()
     main_game_loop()
 
@@ -148,10 +200,11 @@ def reset():
     init_platforms()
 
 def main_game_loop():
-    global DIFFICULTY, PLATFORM_SPACING, MAX_PLATFORMS, HIGH_SCORE, START_TIME, game_over, scroll, run_score
+    global DIFFICULTY, PLATFORM_SPACING, MAX_PLATFORMS, HIGH_SCORE, START_TIME, game_over, scroll, run_score, waiting_for_key, current_mute_img, mute_button_rect
 
     # Wait for an arrow key press to start the game
-    waiting_for_key = True
+    background_music.play(-1)
+
     while waiting_for_key:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -160,6 +213,12 @@ def main_game_loop():
             elif event.type == pygame.KEYDOWN:
                 if event.key in [pygame.K_LEFT, pygame.K_RIGHT, pygame.K_UP, pygame.K_DOWN]:
                     waiting_for_key = False
+            
+            # Handle mute button clicks
+            handle_mute_button_click(event)
+        
+        draw_start_screen()
+        
 
     start_time = pygame.time.get_ticks()
     START_TIME = start_time
@@ -170,6 +229,7 @@ def main_game_loop():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+            handle_mute_button_click(event)
         
         # Adjust background image scroll rate
         scroll -= GRAVITY * DIFFICULTY * 0.4
@@ -186,6 +246,9 @@ def main_game_loop():
         player.draw(screen)
 
         if player.game_over():
+            #If dead, stop the music
+            background_music.stop()
+
             game_over = True
             break
 
@@ -234,6 +297,9 @@ def main_game_loop():
         high_score_rect = high_score_text.get_rect(topleft=(10, 20))
         screen.blit(high_score_text, high_score_rect)
 
+        # Draw the mute/unmute button
+        screen.blit(current_mute_img, mute_button_rect)
+
         pygame.display.flip()
         clock.tick(FPS)
 
@@ -246,7 +312,9 @@ def main_game_loop():
             elif event.type == pygame.KEYDOWN:
                 if event.key in [pygame.K_LEFT, pygame.K_RIGHT, pygame.K_UP, pygame.K_DOWN]:
                     restart_game()
+                    waiting_for_key = False
                     return
+            handle_mute_button_click(event)
 
         screen.fill(BACKGROUND_COLOR)
         
@@ -288,6 +356,9 @@ def main_game_loop():
         score_text = subtext_font.render(f'Score: {run_score}', True, SUBTEXT_COLOR)
         score_rect = score_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 190))
         screen.blit(score_text, score_rect)
+
+        # Draw the mute/unmute button
+        screen.blit(current_mute_img, mute_button_rect)
 
         pygame.display.flip()
 

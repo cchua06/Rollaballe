@@ -38,6 +38,7 @@ class Player(pygame.sprite.Sprite):
         self.scared_image = pygame.transform.scale(self.scared_image, (2 * radius, 2 * radius))  # Scale image to fit radius
         # Load music
         self.falling_sound = pygame.mixer.Sound('sounds/falling.ogg')
+        self.falling_sound.set_volume(0.3)
         self.splat_sound = pygame.mixer.Sound('sounds/splat.ogg')
         self.landing_sound = pygame.mixer.Sound('sounds/landing.ogg')
 
@@ -52,6 +53,18 @@ class Player(pygame.sprite.Sprite):
         self.free_fall = FREE_FALL
         self.falling = False
         self.was_falling = False  # Reset the previous falling state
+
+    #Mute player sounds
+    def mute(self):
+        self.falling_sound.set_volume(0)
+        self.splat_sound.set_volume(0)
+        self.landing_sound.set_volume(0)
+
+    #Unmute player sounds
+    def unmute(self):
+        self.falling_sound.set_volume(0.3)
+        self.splat_sound.set_volume(1)
+        self.landing_sound.set_volume(1)
     
     # Check if the ball is on top of a platform
     def is_vertically_collided(self, platforms):
