@@ -82,13 +82,23 @@ tiles = math.ceil(SCREEN_HEIGHT / background_img.get_height()) + 1
 
 # Create a new platform
 def create_platform(y_pos):
-    x_pos = random.randint(0, SCREEN_WIDTH - PLATFORM_WIDTH)
+    skewed_value = random.random()
+    ONE_QUARTER_LENGTH = SCREEN_WIDTH // 4
+    THREE_QUARTER_LENGTH = 3 * SCREEN_WIDTH // 4 - PLATFORM_WIDTH
+    
+    if skewed_value < 0.45:  # 40% chance to skew towards the left side
+        x_pos = random.randint(0, ONE_QUARTER_LENGTH)
+    elif skewed_value < 0.9:  # 40% chance to skew towards the right side
+        x_pos = random.randint(THREE_QUARTER_LENGTH, SCREEN_WIDTH - PLATFORM_WIDTH)
+    else:  # 20% chance to place the platform in the middle
+        x_pos = random.randint(ONE_QUARTER_LENGTH, THREE_QUARTER_LENGTH)
+    
     return Platform(x=x_pos,
                     y=y_pos,
                     width=PLATFORM_WIDTH,
                     color=PLATFORM_COLOR,
                     gravity=GRAVITY,
-                    difficulty = DIFFICULTY)
+                    difficulty=DIFFICULTY)
 
 def init_platforms():
     # Create starting platform
